@@ -296,7 +296,10 @@
     /* ── Mobile ── */
 @media (max-width: 768px) {
   .app-body {
-    overflow:visible;
+    overflow: visible;
+  }
+  #panelToggle {
+    display: block!important;
   }
   #panel {
     position: absolute;
@@ -330,13 +333,12 @@
     display: flex;
   }
 }
-
 #panelToggle {
   display: none;
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 1000;
+  z-index: 9999;
   background: var(--panel);
   border: 1px solid var(--border);
   color: var(--text);
