@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RISMAP: Regional Invasive Species Monitoring Action Portal</title>
+
+  <!-- ArcGIS Maps SDK 4.x -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css" />
+  <script src="https://js.arcgis.com/4.29/"></script>
+  
+
+  <style>
+    * {
+  cursor: url("Hand.cur"), auto !important;
+}
+
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap');
+
+    :root {
+      --bg:        #0d1117;
+      --panel:     #161b22;
+      --border:    #30363d;
+      --accent:    #3fb950;
+      --accent2:   #f78166;
+      --text:      #e6edf3;
+      --muted:     #a34ef3;
+      --warn:      #d29922;
+      --parcol:    #dc8bf0;
+      --panel-w:   320px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .logo-dot {
+      width: 10px; height: 10px;
+      background: #d29922;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #d29922;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    header h1 span { color: var(--text); }
+    .header-sub {
+      font-size: 13px;
+      color: #d29922;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+
+    /* ── Layout ── */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      
+    }
+
+    /* ── Side Panel ── */
+    #panel {
+      width: var(--panel-w);
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .panel-section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-section-title {
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* ── Controls ── */
+    .control-group { margin-bottom: 10px; }
+    .control-group:last-child { margin-bottom: 0; }
+    .control-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      letter-spacing: 0.06em;
+    }
+    select, input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      border-radius: 4px;
+      appearance: none;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    select:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--accent);
+      color: #0d1117;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      margin-top: 6px;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    /* ── Results ── */
+    #results {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+    #results::-webkit-scrollbar { width: 4px; }
+    #results::-webkit-scrollbar-track { background: transparent; }
+    #results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .result-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .result-card:hover { border-color: var(--accent); }
+    .result-card-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .result-card-sci {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 6px;
+    }
+    .result-card-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .tag-region  { background: #1f2d3d; color: #58a6ff; }
+    .tag-priority-1 { background: #2d1f1f; color: var(--accent2); }
+    .tag-priority-2 { background: #2d2419; color: var(--warn); }
+    .tag-priority-3 { background: #1f2d1f; color: var(--accent); }
+    .tag-priority-default { background: #21262d; color: var(--muted); }
+
+    .result-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 30px 0;
+      line-height: 1.8;
+    }
+
+    /* ── Parcel info ── */
+    #parcel-info {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    #parcel-info.visible { display: block; }
+    .parcel-title {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--warn);
+      margin-bottom: 8px;
+    }
+    .parcel-nearby {
+      font-size: 11px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .parcel-nearby strong { color: var(--accent2); }
+
+    /* ── Map ── */
+    #viewDiv {
+      flex: 1;
+      background: var(--bg);
+    }
+
+    /* ── Status bar ── */
+    #statusBar {
+      position: absolute;
+      bottom: 30px;
+      right: 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      z-index: 5;
+      pointer-events: none;
+      display: none;
+    }
+    #statusBar.visible { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border: 1px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Layer toggles ── */
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .layer-toggle input[type="checkbox"] { accent-color: var(--accent); }
+    .layer-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    /* ── Mobile ── */
+@media (max-width: 768px) {
+  .app-body {
+    overflow: visible;
+  }
+  #panelToggle {
+    display: block!important;
+  }
+  #panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    width: 85vw;
+    overflow-y:auto;
+  }
+
+  #panel.open {
+    transform: translateX(0);
+  }
+
+  #mapOverlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 15;
+  }
+
+  #mapOverlay.visible {
+    display: block;
+  }
+
+  #panelToggle {
+    display: flex;
+  }
+}
+#panelToggle {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1><span>RIS</span>MAP</h1>
+  <div class="header-sub">Regional Invasive Species Monitoring Action Portal &nbsp;·&nbsp; CKISS / RDCK / RDKB</div>
+</header>
+<button id="panelToggle">☰ Filters</button>
+<div class="app-body">
+    
+   <div id="mapOverlay"></div>
+
+  <!-- ── Side Panel ── -->
+  <div id="panel">
+
+    <!-- Filter Controls -->
+    <div class="panel-section">
+      <div class="panel-section-title">Filter Observations</div>
+
+      <div class="control-group">
+        <label>Management Area (IPMA)</label>
+        <select id="regionSelect">
+          <option value="">- All Regions -</option>
+          <option value="Creston">Creston</option>
+          <option value="Kaslo North">Kaslo North</option>
+          <option value="Lower Arrow">Lower Arrow</option>
+          <option value="Nakusp">Nakusp</option>
+          <option value="Nelson">Nelson</option>
+          <option value="Slocan Valley">Slocan Valley</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Management Priority</label>
+        <select id="prioritySelect">
+          <option value="">- All Priorities -</option>
+          <option value="1. Prevent">1. Prevent</option>
+          <option value="2. Eradicate">2. Eradicate</option>
+          <option value="3. Contain">3. Contain</option>
+          <option value="4. Strategic Control">4. Strategic Control</option>
+          <option value="5. Insufficient Information">5. Insufficient Information</option>
+          <option value="Aquatic">Aquatic</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Species Name</label>
+        <input type="text" id="speciesSearch" placeholder="e.g. knotweed" />
+      </div>
+
+      <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+      <button class="btn btn-secondary" id="clearFilters">Clear</button>
+    </div>
+
+    <!-- Layer Toggles -->
+    <div class="panel-section">
+      <div class="panel-section-title">Layers</div>
+      <label class="layer-toggle">
+        <input type="checkbox" id="togPoints"  />
+        <div class="layer-dot" style="background:#DAA520"></div>
+        Invasive Plant Points
+      </label>
+      <label class="layer-toggle">
+        <input type="checkbox" id="togPolygons" checked />
+        <div class="layer-dot" style="background:rgba(204, 85, 0, 0.35); border: 1.5px solid #CC5500"></div>
+        Invasive Plant Areas
+      </label>
+      <label class="layer-toggle">
+        <input type="checkbox" id="togIPMA" checked />
+        <div class="layer-dot" style="background:#58a6ff"></div>
+        IPMA Regions
+      </label>
+      <label class="layer-toggle">
+        <input type="checkbox" id="togParcels" />
+        <div class="layer-dot" style="background:rgba(220, 139, 240, 0.1); border: 1.5px solid #dc8bf0"></div>
+        Parcels (click PARCEL for proximity)
+      </label>
+      <label class="layer-toggle">
+        <input type="checkbox" id="togRDCK" checked />
+        <div class="layer-dot" style="background:#8b949e"></div>
+        RDCK Boundary
+      </label>
+      <label class="layer-toggle">
+        <input type="checkbox" id="togRDKB" checked />
+        <div class="layer-dot" style="background:#8b949e"></div>
+        RDKB Boundary
+      </label>
+      <button class="btn btn-secondary" id="togImagery" style="margin-top:10px;">🛰 Imagery</button>
+    </div>
+
+    <!-- Results -->
+    <div id="results">
+      <div class="result-empty">
+        Select filters above and click<br/><strong>Apply Filters</strong> to see results.
+      </div>
+    </div>
+
+    <!-- Parcel Info -->
+    <div id="parcel-info">
+      <div class="parcel-title">⚑ Nearest Invasive Species to Parcel</div>
+      <div id="parcel-nearby" class="parcel-nearby">Click a property to check proximity.</div>
+    </div>
+
+  </div>
+
+  <!-- ── Map ── -->
+  <div id="viewDiv"></div>
+  <div id="statusBar"><span class="spinner"></span><span id="statusText">Loading...</span></div>
+
+</div>
+
+<script>
+require([
+  "esri/Map",
+  "esri/views/MapView",
+  "esri/layers/FeatureLayer",
+  "esri/geometry/geometryEngine",
+  "esri/geometry/Point",
+  "esri/Graphic",
+  "esri/layers/GraphicsLayer",
+  "esri/geometry/support/webMercatorUtils"
+], function(Map, MapView, FeatureLayer, geometryEngine, Point, Graphic, GraphicsLayer, webMercatorUtils) {
+
+  // ── Service URLs ──────────────────────────────────────────────────
+  const URLS = {
+    points:    "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/Invasive_Plant_Locations/FeatureServer/0",
+    polygons:  "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/Invasive_Plant_Areas/FeatureServer/0",
+    ipma:      "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/Invasive_Plant_Management_Areas/FeatureServer/0",
+    parcels:   "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/Properties/FeatureServer/0",
+    priority:  "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/CKISS_Invasive_Plant_Priority_Table/FeatureServer/0",
+    rdck:      "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/RDCK_Boundary/FeatureServer/0",
+    rdkb:      "https://services2.arcgis.com/Atlhpf089cGUuFTD/ArcGIS/rest/services/RDKB_Boundary/FeatureServer/0"
+  };
+
+  // ── Status helpers ────────────────────────────────────────────────
+  const statusBar = document.getElementById("statusBar");
+  const statusText = document.getElementById("statusText");
+  function showStatus(msg) { statusText.textContent = msg; statusBar.classList.add("visible"); }
+  function hideStatus() { statusBar.classList.remove("visible"); }
+
+  // ── Graphics layer for buffer viz ─────────────────────────────────
+  const bufferLayer = new GraphicsLayer();
+
+  // ── Feature Layers ────────────────────────────────────────────────
+  const priorityFL = new FeatureLayer({ url: URLS.priority });
+  const pointLayer = new FeatureLayer({
+  url: URLS.points,
+  visible: false,
+  outFields: ["*"],
+  renderer: {
+    type: "simple",
+    symbol: { type: "simple-marker", color: "#DAA520", size: 7, outline: { color: "#0d1117", width: 1 } }
+  },
+ popupTemplate: {
+  title: "{Common_Name}",
+  content: [
+    ///PHOTO ID
+    {
+      type: "media",
+      mediaInfos: [{
+        type: "image",
+        value: { sourceURL: "{Photo_URL}" }
+      }]
+    },
+    //REGIONAL PRIORITY
+    {
+      type: "custom",
+      creator: (graphic) => {
+        const a = graphic.graphic.attributes;
+        const div = document.createElement("div");
+        div.innerHTML = `<p style="color:#8b949e;font-size:11px;">Loading priority...</p>`;
+        priorityFL.queryFeatures({
+          where: `Species_Code = ${a.Species_Code} AND Region = '${a.region}'`,
+          outFields: ["Priority"],
+          returnGeometry: false
+        }).then(result => {
+          if (result.features.length) {
+            const priority = result.features[0].attributes.Priority;
+            div.innerHTML = `<p style="margin-top:6px;"><strong>Management Priority:</strong> <span style="color:#3fb950">${priority}</span></p>`;
+          } else {
+            div.innerHTML = `<p style="margin-top:6px;color:#8b949e;">No priority data for this region.</p>`;
+          }
+        }).catch(err => {
+          console.log("Priority query error:", err);
+        });
+        return div;
+      }
+    },
+    //ATTRIBUTE FIELDS
+    {
+      type: "fields",
+      fieldInfos: [
+        { fieldName: "Scientific_Name", label: "Scientific Name" },
+        { fieldName: "Observation_Type", label: "Observation Type" },
+        { fieldName: "region", label: "IPMA Region" },
+        { fieldName: "Area_Sqm", label: "Affected Area (sqm)" }
+      ]
+    }
+  ]
+}
+});
+  const polygonLayer = new FeatureLayer({
+    url: URLS.polygons,
+    outFields: ["*"],
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-fill",
+        color: [204, 85, 0, 0.35],
+        outline: { color: "#CC5500", width: 1.5 }
+      }
+    },
+    //POLYGON POPUP
+    popupTemplate: {
+      title: "{Common_Name}",
+      content: [
+          {
+        type: "media",
+        mediaInfos: [{
+          type: "image",
+          value: { sourceURL: "{Photo_URL}" }
+        }]
+      },
+    {
+  type: "custom",
+  creator: (graphic) => {
+    console.log("CREATOR FIRING");
+    console.log("graphic:", graphic);
+    const a = graphic.graphic.attributes;
+    const div = document.createElement("div");
+    div.innerHTML = `<p style="color:#8b949e;font-size:11px;">Loading priority...</p>`;
+
+    
+   
+    priorityFL.queryFeatures({
+      where: `Species_Code = ${a.Species_Code} AND Region = '${a.region}'`,
+      outFields: ["Priority"],
+      returnGeometry: false
+    }).then(result => {
+      console.log("Priority results:", result.features.length);
+      if (result.features.length) {
+        const priority = result.features[0].attributes.Priority;
+        div.innerHTML = `<p style="margin-top:6px;"><strong>Regional Management Priority:</strong> <span style="color:#3fb950">${priority}</span></p>`;
+      } else {
+        div.innerHTML = `<p style="margin-top:6px;color:#8b949e;">No priority data for this region.</p>`;
+      }
+      }).catch(err => {
+        console.log("Priority query error:", err);
+    });
+
+    return div;
+  }
+},
+{
+        type: "fields",
+        fieldInfos: [
+          { fieldName: "Scientific_Name", label: "Scientific Name" },
+          { fieldName: "Observation_Type", label: "Observation Type" },
+          { fieldName: "region", label: "IPMA Region" },
+          { fieldName: "Area_Sqm", label: "Affected Area (sqm)" }
+          
+        ]
+        },
+      
+    ]
+  }
+});
+
+  const ipmaLayer = new FeatureLayer({
+    url: URLS.ipma,
+    outFields: ["*"],
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-fill",
+        color: [0,0,0,0],
+        outline: { color: "#58a6ff", width: 1.5 }
+      }
+    },
+    labelingInfo: [{
+      labelExpressionInfo: { expression: "$feature.region" },
+      symbol: {
+        type: "text",
+        color: "#ffffff",
+        font: { size: 10, family: "DM Mono" }
+      }
+    }],
+    labelsVisible: true
+  });
+
+  const parcelLayer = new FeatureLayer({
+    url: URLS.parcels,
+    outFields: ["*"],
+    visible: false,
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-fill",
+        color: [220, 139, 240, 0.1],
+        outline: { color: "#dc8bf0", width: 0.5 }
+      }
+    }
+  });
+
+  const rdckLayer = new FeatureLayer({
+    url: URLS.rdck,
+    renderer: {
+      type: "simple",
+      symbol: { type: "simple-fill", color: [0,0,0,0], outline: { color: "#8b949e", width: 2 } }
+    }
+  });
+
+  const rdkbLayer = new FeatureLayer({
+    url: URLS.rdkb,
+    renderer: {
+      type: "simple",
+      symbol: { type: "simple-fill", color: [0,0,0,0], outline: { color: "#8b949e", width: 2 } }
+    }
+  });
+
+  // ── Map & View ────────────────────────────────────────────────────
+  const map = new Map({
+    basemap: "dark-gray-vector",
+    layers: [rdckLayer, rdkbLayer, ipmaLayer, parcelLayer, polygonLayer, pointLayer, bufferLayer]
+  });
+
+  const view = new MapView({
+    container: "viewDiv",
+    map: map,
+    center: [-117.3, 49.8],
+    zoom: 7
+  });
+
+//TOGGLE SIDEBAR FOR MOBILE
+const panelToggle = document.getElementById("panelToggle");
+const panel = document.getElementById("panel");
+const mapOverlay = document.getElementById("mapOverlay");
+
+panelToggle.addEventListener("click", () => {
+  panel.classList.toggle("open");
+  mapOverlay.classList.toggle("visible");
+});
+
+mapOverlay.addEventListener("click", () => {
+  panel.classList.remove("open");
+  mapOverlay.classList.remove("visible");
+});  
+//POPUP IS DOCKED ON CLICK  
+  view.when(() => {
+  view.popup.dockEnabled = true;
+  view.popup.dockOptions = {
+    breakpoint: false,
+    position: "top-right"
+  };
+});
+// add imager layer
+  let imageryMode = false;
+  document.getElementById("togImagery").addEventListener("click", () => {
+  imageryMode = !imageryMode;
+  map.basemap = imageryMode ? "hybrid" : "dark-gray-vector";
+  document.getElementById("togImagery").textContent = imageryMode ? "Switch to Dark Mode " : "Switch to Imagery Mode";
+  });
+
+  // ── Layer toggles ─────────────────────────────────────────────────
+  document.getElementById("togPoints").addEventListener("change",   e => pointLayer.visible   = e.target.checked);
+  document.getElementById("togPolygons").addEventListener("change", e => polygonLayer.visible  = e.target.checked);
+  document.getElementById("togIPMA").addEventListener("change",     e => ipmaLayer.visible     = e.target.checked);
+  document.getElementById("togParcels").addEventListener("change",  e => parcelLayer.visible   = e.target.checked);
+  document.getElementById("togRDCK").addEventListener("change",     e => rdckLayer.visible     = e.target.checked);
+  document.getElementById("togRDKB").addEventListener("change",     e => rdkbLayer.visible     = e.target.checked);
+
+
+  // ── Priority table query helper ───────────────────────────────────
+  async function getSpeciesCodesForPriority(region, priority) {
+    const priorityFL = new FeatureLayer({ url: URLS.priority });
+    let where = "1=1";
+    const clauses = [];
+    if (region)   clauses.push(`Region = '${region}'`);
+    if (priority) clauses.push(`Priority = '${priority}'`);
+    if (clauses.length) where = clauses.join(" AND ");
+
+    const result = await priorityFL.queryFeatures({
+      where: where,
+      outFields: ["Species_Code"],
+      returnGeometry: false
+    });
+    return result.features.map(f => f.attributes.Species_Code).filter(Boolean);
+  }
+
+  // ── Apply filters ─────────────────────────────────────────────────
+  document.getElementById("applyFilters").addEventListener("click", async () => {
+    const region   = document.getElementById("regionSelect").value;
+    const priority = document.getElementById("prioritySelect").value;
+    const species  = document.getElementById("speciesSearch").value.trim();
+
+    showStatus("Querying priority table...");
+
+    let whereClause = "1=1";
+    const clauses = [];
+
+    // Priority/region filter via table lookup
+    if (region || priority) {
+      const codes = await getSpeciesCodesForPriority(region, priority);
+      if (codes.length === 0) {
+        hideStatus();
+        document.getElementById("results").innerHTML =
+          `<div class="result-empty">No species found for selected filters.</div>`;
+        pointLayer.definitionExpression   = "1=0";
+        polygonLayer.definitionExpression = "1=0";
+        return;
+      }
+      clauses.push(`Species_Code IN (${codes.join(",")})`);
+    }
+
+    // Species name search
+    if (species) {
+      clauses.push(`Common_Name LIKE '%${species}%'`);
+    }
+
+    // Region filter directly on layer
+    if (region) {
+      clauses.push(`region = '${region}'`);
+    }
+
+    if (clauses.length) whereClause = clauses.join(" AND ");
+
+    showStatus("Filtering layers...");
+    pointLayer.definitionExpression   = whereClause;
+    polygonLayer.definitionExpression = whereClause;
+
+    // Query points to show results list
+    const result = await pointLayer.queryFeatures({
+      where: whereClause,
+      outFields: ["Common_Name", "Scientific_Name", "region", "Species_Code"],
+      returnGeometry: false
+    });
+
+    renderResults(result.features);
+    hideStatus();
+  });
+
+  // ── Clear filters ─────────────────────────────────────────────────
+  document.getElementById("clearFilters").addEventListener("click", () => {
+    document.getElementById("regionSelect").value   = "";
+    document.getElementById("prioritySelect").value = "";
+    document.getElementById("speciesSearch").value  = "";
+    pointLayer.definitionExpression   = null;
+    polygonLayer.definitionExpression = null;
+    document.getElementById("results").innerHTML =
+      `<div class="result-empty">Filters cleared.</div>`;
+  });
+
+  // ── Render results list ───────────────────────────────────────────
+  function renderResults(features) {
+    const container = document.getElementById("results");
+    if (!features.length) {
+      container.innerHTML = `<div class="result-empty">No observations match your filters.</div>`;
+      return;
+    }
+
+    // Deduplicate by species code
+    const seen = new Set();
+    const unique = features.filter(f => {
+      const code = f.attributes.Species_Code;
+      if (seen.has(code)) return false;
+      seen.add(code); return true;
+    });
+
+    container.innerHTML = unique.map(f => {
+      const a = f.attributes;
+      return `
+        <div class="result-card">
+          <div class="result-card-name">${a.Common_Name || "Unknown"}</div>
+          <div class="result-card-sci">${a.Scientific_Name || ""}</div>
+          <div class="result-card-meta">
+            <span class="tag tag-region">${a.region || "—"}</span>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── Parcel click — 300m proximity ────────────────────────────────
+  view.on("click", async (event) => {
+    if (!parcelLayer.visible) return;
+
+    showStatus("Checking parcel...");
+    const hitResult = await view.hitTest(event, { include: parcelLayer });
+    if (!hitResult.results.length) { hideStatus(); return; }
+
+    const parcelGraphic = hitResult.results[0].graphic;
+    const parcelGeom = parcelGraphic.geometry;
+
+    // Buffer 500m
+    const buffer = geometryEngine.buffer(parcelGeom, 300, "meters");
+
+    // Show buffer on map
+    bufferLayer.removeAll();
+    bufferLayer.add(new Graphic({
+      geometry: buffer,
+      symbol: {
+        type: "simple-fill",
+        color: [210, 153, 34, 0.15],
+        outline: { color: "#d29922", width: 1.5, style: "dash" }
+      }
+    }));
+
+    // Query point layer within buffer
+    showStatus("Finding nearby invasive species...");
+    const nearby = await pointLayer.queryFeatures({
+      geometry: buffer,
+      spatialRelationship: "intersects",
+      outFields: ["Common_Name", "Scientific_Name", "Species_Code", "Photo_URL"],
+      returnGeometry: true
+    });
+
+    view.popup.open({
+    title: `Invasive Species within 300m of Selected Parcel`,
+   content: nearby.features.length
+  ? nearby.features.slice(0,5).map(f => {
+      const a = f.attributes;
+      const dist = Math.round(geometryEngine.distance(parcelGeom, f.geometry, "meters"));
+      const distLabel = dist === 0 
+        ? `<span style="color:#f78166">${a.Common_Name} is present in this parcel</span>` 
+        : `<strong>${a.Common_Name} is located  ${dist}m away</strong>`;
+      return `
+        ${a.Photo_URL ? `<img src="${a.Photo_URL}" style="width:100%;border-radius:4px;margin-bottom:4px;"/>` : ""}
+        ${distLabel}
+      `;
+    }).join("<hr style='border-color:#30363d;margin:8px 0;'/>")
+  : "No invasive species found within 300m.",
+    location: event.mapPoint
+    });
+   hideStatus();
+  });
+
+});
+</script>
+<!-- Welcome Modal -->
+<div id="welcomeModal" style="
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.75); z-index:1000;
+  display:flex; align-items:center; justify-content:center;">
+  <div style="
+    background:#161b22; border:1px solid #30363d;
+    border-radius:8px; padding:30px; max-width:480px;
+    font-family:'DM Mono',monospace; color:#e6edf3;">
+    <h2 style="font-family:'Syne',sans-serif; color:#d29922; margin-bottom:16px;">
+      Welcome to RISMAP
+    </h2>
+    <p style="font-size:12px; line-height:1.8; color:#8b949e; margin-bottom:16px;">
+      The Regional Invasive Species Monitoring Action Portal provides interactive access 
+      to invasive plant observation data across the CKISS Invasive Plant Management Areas.
+    </p>
+    <p style="font-size:12px; line-height:1.8; color:#8b949e; margin-bottom:16px;">
+      <strong style="color:#e6edf3;">Filter</strong> observations by management area, priority, or species common name.<br/>
+      <strong style="color:#e6edf3;">Click</strong> any feature to see species info, photo, and management priority.<br/>
+      <strong style="color:#e6edf3;">Toggle</strong> the Properties layer and click a parcel to find nearby invasive species within 300m.
+    </p>
+    <button onclick="document.getElementById('welcomeModal').style.display='none'" 
+      style="
+        background:#d29922; color:#0d1117; border:none;
+        padding:10px 20px; border-radius:4px;
+        font-family:'DM Mono',monospace; font-size:12px;
+        cursor:pointer; width:100%;">
+      Get Started
+    </button>
+  </div>
+</div>
+</body>
+</html>
